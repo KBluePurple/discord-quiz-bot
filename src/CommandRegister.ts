@@ -25,11 +25,6 @@ const command = [
                         .setDescription('문제를 입력해주세요.')
                         .setRequired(true)
                 )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('정답확인')
-                .setDescription('퀴즈 이벤트 정답을 확인합니다.')
                 .addStringOption(option =>
                     option
                         .setName("정답")
@@ -39,8 +34,13 @@ const command = [
         )
         .addSubcommand(subcommand =>
             subcommand
-                .setName('참여자')
-                .setDescription('퀴즈 이벤트 참여자를 확인합니다.')
+                .setName('정답')
+                .setDescription('퀴즈 이벤트 정답을 확인합니다.')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('랭킹')
+                .setDescription('퀴즈 이벤트 점수 랭킹을 확인합니다.')
         )
         .addSubcommand(subcommand =>
             subcommand

@@ -1,15 +1,21 @@
 {
-  "name": "ggm-festival-bot",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "npx ts-node-dev ./src/index.ts"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "discord.js": "^14.6.0"
-  }
+    "name": "ggm-festival-bot",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "bin": {
+        "ggm-festival-bot": "./dist/index.js"
+    },
+    "scripts": {
+        "start": "npx ts-node-dev ./src/index.ts && node ./dist/index.js",
+        "dev": "npx ts-node-dev ./src/index.ts",
+        "build": "npx tsc -p ./tsconfig.json && npx pkg ./dist/index.js --target node18-win-x64 --output ./dist/ggm-festival-bot.exe"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "discord.js": "^14.6.0",
+        "pkg": "^5.8.0"
+    }
 }
