@@ -163,8 +163,14 @@ client.on('interactionCreate', async (interaction) => {
                                 const answer = quiz.answer;
                                 const users = quiz.users;
 
-                                let str = users
-                                    .filter(user => user.answer === answer)
+                                const correctUsers = users
+                                    .filter(user => user.answer === answer);
+
+                                correctUsers.forEach(user => {
+                                    user.score += 1;
+                                });
+
+                                let str = correctUsers
                                     .map(user => user.member.user.username)
                                     .join('\n');
 
@@ -239,8 +245,8 @@ client.on('interactionCreate', async (interaction) => {
                         const quiz = Array.from(quizInfos.values()).find(quiz => quiz.manager.id === interaction.member?.user.id);
                         if (quiz) {
                             if (quiz.state === 'start') {
-                                quiz.state = 'end';
 
+                                quizInfos.delete(quiz.id);
                                 await interaction.reply({
                                     embeds: [EmbedUtil.success('퀴즈 이벤트가 종료되었습니다!')]
                                 });
@@ -262,89 +268,92 @@ client.on('interactionCreate', async (interaction) => {
             }
         } else if (interaction.isButton()) {
             const buttonId = interaction.customId.split(':')[0];
-            if (buttonId === 'button') {
-                const quizId = interaction.customId.split(':')[1];
+            switch (buttonId) {
+                case 'button':
+                    const quizId = interaction.customId.split(':')[1];
 
-                if (!quizInfos.has(quizId) || quizInfos.get(quizId)?.state !== 'ready') {
-                    await interaction.reply({
-                        embeds: [EmbedUtil.warn('이미 시작되거나 종료된 이벤트입니다.')],
-                        ephemeral: true,
+                    if (!quizInfos.has(quizId) || quizInfos.get(quizId)?.state !== 'ready') {
+                        await interaction.reply({
+                            embeds: [EmbedUtil.warn('이미 시작되거나 종료된 이벤트입니다.')],
+                            ephemeral: true,
+                        });
+                        return;
+                    }
+
+                    if (quizInfos.get(quizId)?.users.find(user => user.member.id === interaction.member?.user.id)) {
+                        await interaction.reply({
+                            embeds: [EmbedUtil.warn('이미 참여하셨습니다.')],
+                            ephemeral: true,
+                        });
+                        return;
+                    }
+
+                    quizInfos.get(quizId)?.users.push({
+                        member: interaction.member as GuildMember,
+                        answer: '',
+                        score: 0
                     });
-                    return;
-                }
 
-                if (quizInfos.get(quizId)?.users.find(user => user.member.id === interaction.member?.user.id)) {
                     await interaction.reply({
-                        embeds: [EmbedUtil.warn('이미 참여하셨습니다.')],
-                        ephemeral: true,
+                        embeds: [EmbedUtil.success(`퀴즈에 참가하셨습니다!\n\n현재 참가자 수: **${quizInfos.get(quizId)?.users.length}명**`, {
+                            text: (interaction.member ? (interaction.member as GuildMember).displayName : interaction.user.username) as string,
+                            iconURL: interaction.user.avatarURL() ?? undefined,
+                        })],
                     });
-                    return;
-                }
+                    break;
+                case 'submit':
+                    const quiz = getQuizInfo(interaction);
 
-                quizInfos.get(quizId)?.users.push({
-                    member: interaction.member as GuildMember,
-                    answer: '',
-                    score: 0
-                });
+                    if (!quiz || quiz.state !== 'start') {
+                        await interaction.reply({
+                            embeds: [EmbedUtil.error('오류가 발생했습니다.')],
+                            ephemeral: true,
+                        });
+                        return;
+                    }
 
-                await interaction.reply({
-                    embeds: [EmbedUtil.success(`퀴즈에 참가하셨습니다!\n\n현재 참가자 수: **${quizInfos.get(quizId)?.users.length}명**`, {
-                        text: (interaction.member ? (interaction.member as GuildMember).displayName : interaction.user.username) as string,
-                        iconURL: interaction.user.avatarURL() ?? undefined,
-                    })],
-                });
-            } else if (buttonId === 'submit') {
-                const quiz = getQuizInfo(interaction);
+                    if (quiz) {
+                        const user = quiz.users.find(user => user.member.id === interaction.member?.user.id);
+                        if (user) {
+                            if (user.answer !== '') {
+                                await interaction.reply({
+                                    embeds: [EmbedUtil.warn('이미 제출하셨습니다.')],
+                                    ephemeral: true,
+                                });
+                                return;
+                            }
 
-                if (!quiz || quiz.state !== 'start') {
-                    await interaction.reply({
-                        embeds: [EmbedUtil.error('오류가 발생했습니다.')],
-                        ephemeral: true,
-                    });
-                    return;
-                }
+                            const modal = new ModalBuilder()
+                                .setCustomId(`submit:${quiz.id}`)
+                                .setTitle('정답 제출');
 
-                if (quiz) {
-                    const user = quiz.users.find(user => user.member.id === interaction.member?.user.id);
-                    if (user) {
-                        if (user.answer !== '') {
+                            const textInput = new TextInputBuilder()
+                                .setCustomId(`answer:${quiz.id}`)
+                                .setLabel(quiz.question)
+                                .setPlaceholder("정답을 입력해주세요.")
+                                .setMinLength(1)
+                                .setMaxLength(100)
+                                .setStyle(TextInputStyle.Short);
+
+                            const actionRow = new ActionRowBuilder().addComponents(textInput);
+
+                            // @ts-ignore
+                            modal.addComponents(actionRow);
+
+                            await interaction.showModal(modal);
+                        } else {
                             await interaction.reply({
-                                embeds: [EmbedUtil.warn('이미 제출하셨습니다.')],
+                                embeds: [EmbedUtil.error('퀴즈 이벤트에 참가하지 않았습니다.')],
                                 ephemeral: true,
                             });
-                            return;
                         }
-
-                        const modal = new ModalBuilder()
-                            .setCustomId(`submit:${quiz.id}`)
-                            .setTitle('정답 제출');
-
-                        const textInput = new TextInputBuilder()
-                            .setCustomId(`answer:${quiz.id}`)
-                            .setLabel(quiz.question)
-                            .setPlaceholder("정답을 입력해주세요.")
-                            .setMinLength(1)
-                            .setMaxLength(100)
-                            .setStyle(TextInputStyle.Short);
-
-                        const actionRow = new ActionRowBuilder().addComponents(textInput);
-
-                        // @ts-ignore
-                        modal.addComponents(actionRow);
-
-                        await interaction.showModal(modal);
                     } else {
                         await interaction.reply({
-                            embeds: [EmbedUtil.error('퀴즈 이벤트에 참가하지 않았습니다.')],
+                            embeds: [EmbedUtil.error('퀴즈 이벤트가 없습니다.')],
                             ephemeral: true,
                         });
                     }
-                } else {
-                    await interaction.reply({
-                        embeds: [EmbedUtil.error('퀴즈 이벤트가 없습니다.')],
-                        ephemeral: true,
-                    });
-                }
+                    break;
             }
         } else if (interaction.isSelectMenu()) {
 
