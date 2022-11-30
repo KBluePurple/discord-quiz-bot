@@ -1,4 +1,5 @@
 import {PermissionFlagsBits, REST, Routes, SlashCommandBuilder} from "discord.js";
+import {Config} from "./Config";
 
 const command = [
     new SlashCommandBuilder()
@@ -54,13 +55,13 @@ const command = [
         )
 ]
 
-const rest = new REST({version: '10'}).setToken('MTA0NjY1NDg4NTcxNTc3OTY3NA.GCpFqf.On42xgCtL5P80hlv0XjGQcXIXC1TQzBs52k_aY');
+const rest = new REST({version: '10'}).setToken(Config.token);
 
 export function registerCommands() {
     (async () => {
         try {
             await rest.put(
-                Routes.applicationCommands('1046654885715779674'),
+                Routes.applicationCommands(Config.clientId),
                 {body: command},
             );
 

@@ -14,6 +14,7 @@ import {
 } from 'discord.js';
 import {registerCommands} from "./CommandRegister";
 import EmbedUtil from "./EmbedUtil";
+import {Config} from "./Config";
 
 type QuizUser = {
     member: GuildMember,
@@ -402,19 +403,6 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.login('').then(r =>
+client.login(Config.token).then(() =>
     console.log('Logged in!')
 );
-
-process.on("unhandledRejection", async (err) => {
-    console.error("Unhandled Promise Rejection:\n", err);
-});
-process.on("uncaughtException", async (err) => {
-    console.error("Uncaught Promise Exception:\n", err);
-});
-process.on("uncaughtExceptionMonitor", async (err) => {
-    console.error("Uncaught Promise Exception (Monitor):\n", err);
-});
-// process.on("multipleResolves", async (type, promise, reason) => {
-//     console.error("Multiple Resolves:\n", type, promise, reason);
-// });
